@@ -13,6 +13,10 @@ mkdir -p "$OUT" "$ROOT/data"
 echo "Open-Meteo: $(curl -s -m 20 -o /tmp/om.json -w '%{http_code}' \
   'https://api.open-meteo.com/v1/forecast?latitude=41.158&longitude=-8.629&current=temperature_2m') $(head -c 200 /tmp/om.json)"
 
+# Tamanho da letra (veja patches/sitecustomize.py): texto das matérias no 3º dos 4 tamanhos (0 a 3; o original é
+# 1) e +2 px nas letras pequenas da capa e das seções.
+export PAPER_ARTICLE_SIZE=${PAPER_ARTICLE_SIZE:-2} PAPER_TEXT_BUMP=${PAPER_TEXT_BUMP:-2}
+
 (cd "$SP/server" && PYTHONPATH="$ROOT/patches" STOP_PRESS_CONFIG="$ROOT/stop-press.toml" PAPER_DATA_DIR="$ROOT/data" \
   exec "$PY" -m uvicorn paper.app:app --port "$PORT") &
 PID=$!
