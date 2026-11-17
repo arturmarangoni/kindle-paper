@@ -3,7 +3,7 @@
 1. Clima resiliente. Os runners do GitHub às vezes não conseguem conectar ao Open-Meteo (o handshake TLS expira):
    - toda chamada httpx.get que falha por rede é repetida algumas vezes;
    - a última resposta boa do Open-Meteo fica salva no data/ (que o cache do Actions guarda entre impressões),
-     e é usada se todas as tentativas falharem, por até 12 horas.
+     e é usada, por até 24 horas, se todas as tentativas falharem ou se o Open-Meteo recusar o pedido (429).
 
 2. Letra maior (a tela do Kindle 4 é pequena):
    - PAPER_ARTICLE_SIZE: qual dos 4 tamanhos do Stop Press usar no texto das matérias (0 a 3; o original é 1).
@@ -26,7 +26,7 @@ import httpx
 _orig_get = httpx.get
 _DATA = Path(os.environ.get("PAPER_DATA_DIR", "."))
 _LAST = _DATA / "open-meteo-last.json"
-_MAX_AGE = 12 * 3600
+_MAX_AGE = 24 * 3600  # o bloqueio do Open-Meteo é diário
 
 
 def _get(url, *args, **kw):
@@ -38,16 +38,29 @@ def _get(url, *args, **kw):
     for attempt in range(4):
         try:
             r = _orig_get(url, *args, **kw)
-            if is_weather and r.status_code == 200:
-                _LAST.write_bytes(r.content)
+            if is_weather:
+                if r.status_code == 200:
+                    _LAST.write_bytes(r.content)
+                elif _fresh():
+                    # 429: o Open-Meteo limita pedidos por IP, e os IPs do GitHub são compartilhados.
+                    print(f"Open-Meteo respondeu {r.status_code}; usando o último clima salvo", flush=True)
+                    return _saved(url)
             return r
         except (httpx.TimeoutException, httpx.NetworkError) as e:
             err = e
             time.sleep(3 * (attempt + 1))
-    if is_weather and _LAST.exists() and time.time() - _LAST.stat().st_mtime < _MAX_AGE:
+    if is_weather and _fresh():
         print(f"Open-Meteo indisponível ({err!r}); usando o último clima salvo", flush=True)
-        return httpx.Response(200, content=_LAST.read_bytes(), request=httpx.Request("GET", str(url)))
+        return _saved(url)
     raise err
+
+
+def _fresh():
+    return _LAST.exists() and time.time() - _LAST.stat().st_mtime < _MAX_AGE
+
+
+def _saved(url):
+    return httpx.Response(200, content=_LAST.read_bytes(), request=httpx.Request("GET", str(url)))
 
 
 httpx.get = _get
