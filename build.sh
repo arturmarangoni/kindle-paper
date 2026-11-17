@@ -17,7 +17,12 @@ echo "Open-Meteo: $(curl -s -m 20 -o /tmp/om.json -w '%{http_code}' \
 # 1) e +2 px nas letras pequenas da capa e das seções.
 export PAPER_ARTICLE_SIZE=${PAPER_ARTICLE_SIZE:-2} PAPER_TEXT_BUMP=${PAPER_TEXT_BUMP:-2}
 
-(cd "$SP/server" && PYTHONPATH="$ROOT/patches" STOP_PRESS_CONFIG="$ROOT/stop-press.toml" PAPER_DATA_DIR="$ROOT/data" \
+# O servidor roda numa cópia do Stop Press, adaptada por patches/localize.py (português, seção Itália).
+WORK="$ROOT/work"
+rm -rf "$WORK" && cp -R "$SP/server" "$WORK"
+"$PY" "$ROOT/patches/localize.py" "$WORK"
+
+(cd "$WORK" && PYTHONPATH="$ROOT/patches" STOP_PRESS_CONFIG="$ROOT/stop-press.toml" PAPER_DATA_DIR="$ROOT/data" \
   exec "$PY" -m uvicorn paper.app:app --port "$PORT") &
 PID=$!
 trap 'kill $PID 2>/dev/null' EXIT INT TERM

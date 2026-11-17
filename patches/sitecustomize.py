@@ -12,16 +12,30 @@
      entre linhas crescendo na mesma proporção. Títulos grandes ficam como estão. A página de mercados, uma
      tabela de colunas fixas, fica no tamanho original.
 
-3. Rodapé das páginas folheáveis com a hora da impressão ("PRINTED 18:56").
+3. Rodapé das páginas folheáveis com a hora da impressão ("IMPRESSO ÀS 18:56").
+
+4. Datas em português do Brasil (locale pt_BR; o workflow instala o locale no runner). Os demais textos são
+   traduzidos por patches/localize.py.
 """
 import importlib.abc
 import importlib.machinery
+import locale
 import os
 import sys
 import time
 from pathlib import Path
 
 import httpx
+
+# --- 4. datas em português ------------------------------------------------------------------------
+for _loc in ("pt_BR.UTF-8", "pt_BR.utf8", "pt_PT.UTF-8"):
+    try:
+        locale.setlocale(locale.LC_TIME, _loc)
+        break
+    except locale.Error:
+        pass
+else:
+    print("sitecustomize: locale pt_BR indisponível; datas ficam em inglês", flush=True)
 
 # --- 1. clima resiliente -------------------------------------------------------------------------
 
@@ -139,7 +153,7 @@ def _patch_offline(offline):
     def _footer(p, stamp):
         p.d.rectangle([0, H - 30, W, H], fill=255)
         p.rule(H - 28, w=1)
-        p.text((W / 2, H - 20), f"PRINTED {stamp}  ·  UP/DOWN NEXT STORY  ·  HOME FRONT PAGE",
+        p.text((W / 2, H - 20), f"IMPRESSO ÀS {stamp}  ·  CIMA/BAIXO: MATÉRIAS  ·  HOME: CAPA",
                font("sans", 11, 700), INK, anchor="ma")
 
     offline._footer = _footer

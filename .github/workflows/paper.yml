@@ -30,6 +30,9 @@ jobs:
         uses: actions/checkout@v4
         with:
           repository: OPISGUY/stop-press
+          # Versão fixa: patches/localize.py troca trechos exatos deste código. Para atualizar, troque o
+          # commit e rode uma impressão; se algum trecho tiver mudado, ela falha dizendo qual.
+          ref: 282b684ce06120fd7628da3df91db6d0e0f5e18f
           path: stop-press-src
 
       - uses: actions/setup-python@v5
@@ -41,7 +44,8 @@ jobs:
       - name: Instalar dependências (Calibre para a edição diária)
         run: |
           sudo apt-get update -qq
-          sudo apt-get install -y -qq --no-install-recommends calibre > /dev/null
+          sudo apt-get install -y -qq --no-install-recommends calibre locales > /dev/null
+          sudo locale-gen pt_BR.UTF-8 > /dev/null   # datas em português
           pip install -q -r stop-press-src/server/requirements.txt
 
       - name: Recuperar o histórico do jornal

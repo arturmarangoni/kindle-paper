@@ -1,11 +1,11 @@
-# Stop Press — configuração para o Kindle 4 em Porto.
+# Stop Press — configuração para o Kindle 4 em Senhora da Hora (Matosinhos).
 # Variáveis PAPER_<NOME> (ex.: PAPER_TOKEN) sobrescrevem [paper].
 
 [paper]
 masthead = "Stop Press"
-place = "Porto"
-lat = 41.158
-lon = -8.629
+place = "Senhora da Hora"   # Matosinhos, 4460-331
+lat = 41.186
+lon = -8.652
 tz = "Europe/Lisbon"
 # Segredo que o Kindle envia em toda requisição (o servidor fica na internet).
 token = ""   # site estático e público: sem token
@@ -14,32 +14,40 @@ calendar_ics_url = ""
 rotation = "front"
 rotate_minutes = 60
 
-# Notícias: quatro seções, cada uma com feeds RSS/Atom [fonte, url].
+# Notícias: cada seção com feeds RSS/Atom [fonte, url].
+# world: manchete e "Também hoje" da capa, e a página Mundo.
 [sections.world]
-title = "Il Mondo"
-feeds = [["ANSA", "https://www.ansa.it/sito/notizie/mondo/mondo_rss.xml"],
-         ["Il Post", "https://www.ilpost.it/mondo/feed/"],
-         ["Corriere", "https://xml2.corriereobjects.it/rss/esteri.xml"]]
+title = "Mundo"
+feeds = [["g1", "https://g1.globo.com/rss/g1/mundo/"],
+         ["BBC Brasil", "https://feeds.bbci.co.uk/portuguese/rss.xml"],
+         ["Público", "https://feeds.feedburner.com/PublicoMundo"]]
 
+# home: notícias locais (capa, fim da página Mundo e página Seu dia).
 [sections.home]
-title = "Italia"
-feeds = [["ANSA", "https://www.ansa.it/sito/notizie/cronaca/cronaca_rss.xml"],
-         ["Il Post", "https://www.ilpost.it/italia/feed/"],
-         ["Corriere", "https://xml2.corriereobjects.it/rss/cronache.xml"]]
+title = "Portugal"
+feeds = [["RTP", "https://www.rtp.pt/noticias/rss/pais"],
+         ["Público", "https://feeds.feedburner.com/PublicoLocal"],
+         ["Google Notícias", "https://news.google.com/rss/search?q=Matosinhos+OR+%22Porto%22+when:2d&hl=pt-PT&gl=PT&ceid=PT:pt-150"]]
 
+# business: manchetes no fim da página Mercados.
 [sections.business]
 title = "Economia"
-feeds = [["ANSA", "https://www.ansa.it/sito/notizie/economia/economia_rss.xml"],
-         ["Il Post", "https://www.ilpost.it/economia/feed/"],
-         ["Corriere", "https://xml2.corriereobjects.it/rss/economia.xml"]]
+feeds = [["g1", "https://g1.globo.com/rss/g1/economia/"],
+         ["InfoMoney", "https://www.infomoney.com.br/feed/"],
+         ["ECO", "https://eco.sapo.pt/feed/"]]
 
+# tech: canto da capa.
 [sections.tech]
-title = "Intelligenza Artificiale"
-feeds = [["AI4Business", "https://www.ai4business.it/feed/"],
-         ["MIT Tech Review", "https://www.technologyreview.com/topic/artificial-intelligence/feed"],
-         ["The Verge", "https://www.theverge.com/rss/ai-artificial-intelligence/index.xml"],
-         ["Ars Technica", "https://arstechnica.com/ai/feed/"],
-         ["TechCrunch", "https://techcrunch.com/category/artificial-intelligence/feed/"]]
+title = "Inteligência Artificial"
+feeds = [["Canaltech", "https://canaltech.com.br/rss/inteligencia-artificial/"],
+         ["Olhar Digital", "https://olhardigital.com.br/inteligencia-artificial/feed/"]]
+
+# italia: página própria, em italiano (seção extra, ver patches/localize.py).
+[sections.italia]
+title = "Itália"
+feeds = [["ANSA", "https://www.ansa.it/sito/ansait_rss.xml"],
+         ["Corriere", "https://xml2.corriereobjects.it/rss/homepage.xml"],
+         ["Il Post", "https://www.ilpost.it/italia/feed/"]]
 
 # Mercados: símbolos do Yahoo Finance [símbolo, nome, tipo]; tipo: index, fx, crypto, commodity, stock.
 # Depois que o servidor estiver no ar, edite a lista pelo celular em /watchlist?t=<token>.
@@ -49,7 +57,7 @@ front = ["^BVSP", "BRL=X", "EURBRL=X", "^GSPC", "BTC-USD", "GC=F", "BZ=F"]
 instruments = [
   ["^BVSP", "Ibovespa", "index"], ["^GSPC", "S&P 500", "index"], ["^IXIC", "Nasdaq", "index"],
   ["BRL=X", "USD/BRL", "fx"], ["EURBRL=X", "EUR/BRL", "fx"], ["EURUSD=X", "EUR/USD", "fx"],
-  ["BTC-USD", "Bitcoin", "crypto"], ["GC=F", "Gold", "commodity"], ["BZ=F", "Brent crude", "commodity"],
+  ["BTC-USD", "Bitcoin", "crypto"], ["GC=F", "Ouro", "commodity"], ["BZ=F", "Petróleo Brent", "commodity"],
   ["PETR4.SA", "Petrobras", "stock"], ["VALE3.SA", "Vale", "stock"], ["ITUB4.SA", "Itaú", "stock"],
 ]
 
