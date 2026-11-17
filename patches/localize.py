@@ -24,6 +24,11 @@ EDITS = {
     "sources.py": [
         ('"wind_speed_unit": "mph"', '"wind_speed_unit": "kmh"'),
     ],
+    "photos.py": [
+        # Vinhetas de vídeo do g1 (a mesma imagem genérica "AGORA NO G1" em várias matérias): não são fotos.
+        ("def load(url: str | None) -> Image.Image | None:\n    if not url:\n        return None",
+         "def load(url: str | None) -> Image.Image | None:\n    if not url or 'video.glbimg.com' in url:\n        return None"),
+    ],
     "offline.py": [
         ("MAX_ARTICLES = 24", "MAX_ARTICLES = 30"),  # cinco seções em vez de quatro
     ],
@@ -48,7 +53,7 @@ EDITS = {
         ("""wx = f"{w['summary']} · {w['temp']}°C · H {w['days'][0]['hi']}° L {w['days'][0]['lo']}°\"""",
          """wx = f"{w['summary']} · {w['temp']}°C · {w['days'][0]['hi']}°/{w['days'][0]['lo']}°\""""),
         ('bits = [f"Leading the world pages: {top}." if top else ""]',
-         'bits = [f"Destaque no mundo: {top}." if top else ""]'),
+         'bits = [f"Destaque: {top}." if top else ""]'),
         ("""bits.append(f"The {lead_mk['name']} is {'up' if lead_mk['change_pct'] >= 0 else 'down'} "
                         f"{abs(lead_mk['change_pct']):.1f}% at {price(lead_mk)}.")""",
          """bits.append(f"O {lead_mk['name']} está em {'alta' if lead_mk['change_pct'] >= 0 else 'queda'} "
@@ -56,9 +61,15 @@ EDITS = {
         ("""bits.append(f"In {S.place}, {w['summary'].lower()}, {w['temp']}°C.")""",
          """bits.append(f"Em {S.place}, {w['summary'].lower()}, {w['temp']}°C.")"""),
         ("""f"World · {lead['source']} · {ago(lead['when'])}\"""",
-         """f"{S.sections['world']['title']} · {lead['source']} · {ago(lead['when'])}\""""),
+         """f"{_section_title(lead)} · {lead['source']} · {ago(lead['when'])}\""""),
+        # A manchete sempre com foto: a primeira das seis primeiras notícias locais que tenha uma.
+        ('top = (n.get("world") or [{}])[0].get("title")', 'top = (_pick_lead(_local_news()) or {}).get("title")'),
+        ('    world = n.get("world") or []\n    if world:', '    world = _local_news()  # a capa: só Portugal, a região primeiro\n    if world:'),
+        ("        lead = world[0]\n", "        lead = _pick_lead(world)\n        world = [lead] + [i for i in world if i is not lead]\n"),
+        ('p.photo((W - M - 220, y + 4, W - M, y + 150), lead.get("image"))',
+         'p.photo((W - M - 220, y + 4, W - M, y + 150), _lead_image(lead))'),
         ('"Also today"', '"Também hoje"'),
-        ('for item in (world[1:] + (n.get("home") or []))[:6]:', 'for item in _mix(world[1:], n.get("home") or [])[:6]:'),
+        ('for item in (world[1:] + (n.get("home") or []))[:6]:', 'for item in world[1:7]:'),
         ('my = p.kicker(gx, top, "Markets")', 'my = p.kicker(gx, top, "Mercados")'),
         ('dy = p.kicker(M, y, "Your day")', 'dy = p.kicker(M, y, "Seu dia")'),
         ('label = "Today" if d["date"] == t.date() else d["date"].strftime("%A")',
@@ -113,6 +124,7 @@ EDITS = {
          "for item in items[1:] + ((n.get(extra) or [])[:4] if extra else []):"),
         # Seu dia
         ('y = header(p, "Your Day")', 'y = header(p, "Seu dia")'),
+        ('    home = (sources.news() or {}).get("home") or []', '    home = _local_news()'),
         ('p.text((M, y), t.strftime("%A"), font("head", 40, 900))',
          'p.text((M, y), t.strftime("%A").capitalize(), font("head", 40, 900))'),
         ('t.strftime("%d %B %Y")', 't.strftime("%d de %B de %Y")'),
@@ -182,6 +194,48 @@ def _mix(a, b):
     for i in range(max(len(a), len(b))):
         out += a[i:i + 1] + b[i:i + 1]
     return out
+
+
+def _local_news():
+    """A capa e o Seu dia: as notícias da região (dos últimos 3 dias) primeiro, depois as de Portugal."""
+    n = sources.news() or {}
+    agora = datetime.now(timezone.utc)
+    regiao = [i for i in n.get("regiao") or [] if i.get("when") and (agora - i["when"]).total_seconds() < 72 * 3600]
+    out, seen = [], set()
+    for item in regiao + (n.get("home") or []):
+        if item["link"] not in seen:
+            seen.add(item["link"])
+            out.append(item)
+    return out
+
+
+def _section_title(item):
+    links = {i["link"] for i in (sources.news() or {}).get("regiao") or []}
+    return S.sections["regiao" if item["link"] in links else "home"]["title"]
+
+
+def _lead_image(item):
+    """A foto da notícia: a do feed, ou a primeira da própria matéria (já baixada pelo arquivo)."""
+    from paper import archive, photos
+    from paper.edition import _paragraphs
+
+    if photos.available(item.get("image")):
+        return item.get("image")
+    a = archive.get(item.get("link"))
+    for para in _paragraphs((a or {}).get("text") or ""):
+        if para.startswith(archive.IMG):
+            url = para[len(archive.IMG):-2]
+            if photos.available(url):
+                return url
+    return None
+
+
+def _pick_lead(items):
+    """A manchete da capa: a primeira das seis primeiras notícias que tenha foto (senão, a primeira)."""
+    for item in items[:6]:
+        if _lead_image(item):
+            return item
+    return items[0] if items else None
 
 
 def _pct(v):

@@ -2,7 +2,7 @@
 # Variáveis PAPER_<NOME> (ex.: PAPER_TOKEN) sobrescrevem [paper].
 
 [paper]
-masthead = "Stop Press"
+masthead = "A&I Press"
 place = "Senhora da Hora"   # Matosinhos, 4460-331
 lat = 41.186
 lon = -8.652
@@ -15,19 +15,28 @@ rotation = "front"
 rotate_minutes = 60
 
 # Notícias: cada seção com feeds RSS/Atom [fonte, url].
-# world: manchete e "Também hoje" da capa, e a página Mundo.
+# world: a página Mundo.
 [sections.world]
 title = "Mundo"
 feeds = [["g1", "https://g1.globo.com/rss/g1/mundo/"],
          ["BBC Brasil", "https://feeds.bbci.co.uk/portuguese/rss.xml"],
          ["Público", "https://feeds.feedburner.com/PublicoMundo"]]
 
-# home: notícias locais (capa, fim da página Mundo e página Seu dia).
+# regiao: Porto, Matosinhos e arredores. O Público não tem RSS por cidade; patches/sitecustomize.py converte
+# as listas do site (api/list/local/<cidade>) em feed. Vai para a capa (as dos últimos 3 dias, primeiro).
+[sections.regiao]
+title = "Porto e Matosinhos"
+feeds = [["Público Matosinhos", "https://www.publico.pt/api/list/local/matosinhos"],
+         ["Público Porto", "https://www.publico.pt/api/list/local/porto"],
+         ["Público Maia", "https://www.publico.pt/api/list/local/maia"],
+         ["Público Gaia", "https://www.publico.pt/api/list/local/gaia"]]
+
+# home: Portugal (capa, depois das regionais; fim da página Mundo; página Seu dia).
 [sections.home]
 title = "Portugal"
 feeds = [["RTP", "https://www.rtp.pt/noticias/rss/pais"],
-         ["Público", "https://feeds.feedburner.com/PublicoLocal"],
-         ["Google Notícias", "https://news.google.com/rss/search?q=Matosinhos+OR+%22Porto%22+when:2d&hl=pt-PT&gl=PT&ceid=PT:pt-150"]]
+         ["Notícias ao Minuto", "https://www.noticiasaominuto.com/rss/pais"],
+         ["Público", "https://feeds.feedburner.com/PublicoLocal"]]
 
 # business: manchetes no fim da página Mercados.
 [sections.business]

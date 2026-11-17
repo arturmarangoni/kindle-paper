@@ -53,7 +53,7 @@ CHAPTERS=$(tr '\n' ',' < "$OUT/pages/chapters.txt" | sed 's/,$//')
 cat > "$OUT/index.html" <<EOF
 <!doctype html><html lang="pt"><meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Stop Press</title>
+<title>A&amp;I Press</title>
 <style>
   body{margin:0;background:#d9d6cf;font:15px/1.4 system-ui,sans-serif;color:#222;display:flex;flex-direction:column;align-items:center;min-height:100vh}
   #page{width:min(600px,100vw);aspect-ratio:3/4;background:#fff;box-shadow:0 2px 14px #0003;margin:16px 0 8px;cursor:pointer;display:block}

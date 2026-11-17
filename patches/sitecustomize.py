@@ -14,6 +14,9 @@
 
 3. Rodapé das páginas folheáveis com a hora da impressão ("IMPRESSO ÀS 18:56").
 
+5. Notícias da região: o Público não tem RSS por cidade, então as listas do site (publico.pt/api/list/local/
+   <cidade>, em JSON) são convertidas em RSS aqui, na hora em que o Stop Press as pede.
+
 4. Datas em português do Brasil (locale pt_BR; o workflow instala o locale no runner). Os demais textos são
    traduzidos por patches/localize.py.
 """
@@ -54,6 +57,8 @@ def _get(url, *args, **kw):
     for attempt in range(4):
         try:
             r = _orig_get(url, *args, **kw)
+            if "publico.pt/api/list/" in str(url) and r.status_code == 200:
+                return _publico_rss(url, r)
             if is_weather:
                 if r.status_code == 200:
                     _LAST.write_bytes(r.content)
@@ -69,6 +74,36 @@ def _get(url, *args, **kw):
         print(f"Open-Meteo indisponível ({err!r}); usando o último clima salvo", flush=True)
         return _saved(url)
     raise err
+
+
+def _publico_rss(url, r):
+    """Uma lista de notícias do site do Público (JSON) como feed RSS, para o Stop Press ler como os outros."""
+    import html
+    from datetime import datetime
+    from email.utils import format_datetime
+
+    def esc(v):
+        return html.escape(str(v or ""), quote=True)
+
+    items = []
+    for a in r.json():
+        link = a.get("fullUrl") or a.get("url")
+        if not a.get("titulo") or not link:
+            continue
+        when = ""
+        try:
+            when = format_datetime(datetime.fromisoformat(a["data"]))
+        except Exception:
+            pass
+        img = a.get("multimediaPrincipal")
+        media = f'<media:content url="{esc(img)}" medium="image" width="1200"/>' if isinstance(img, str) and img.startswith("http") else ""
+        items.append(f"<item><title>{esc(a['titulo'])}</title><link>{esc(link)}</link><guid>{esc(link)}</guid>"
+                     f"<description>{esc(a.get('descricao') or a.get('lead'))}</description>"
+                     f"<pubDate>{when}</pubDate>{media}</item>")
+    rss = ('<?xml version="1.0" encoding="utf-8"?><rss version="2.0" xmlns:media="http://search.yahoo.com/mrss/">'
+           f"<channel><title>Público</title><link>https://www.publico.pt</link>{''.join(items)}</channel></rss>")
+    return httpx.Response(200, content=rss.encode("utf-8"), request=httpx.Request("GET", str(url)),
+                          headers={"content-type": "application/rss+xml"})
 
 
 def _fresh():
