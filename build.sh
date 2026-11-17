@@ -9,6 +9,10 @@ PORT=${PORT:-8770}
 PY=${PY:-python}
 mkdir -p "$OUT" "$ROOT/data"
 
+# Diagnóstico: o clima vem do Open-Meteo, que limita pedidos por IP (os IPs do GitHub são compartilhados).
+echo "Open-Meteo: $(curl -s -m 20 -o /tmp/om.json -w '%{http_code}' \
+  'https://api.open-meteo.com/v1/forecast?latitude=41.158&longitude=-8.629&current=temperature_2m') $(head -c 200 /tmp/om.json)"
+
 (cd "$SP/server" && STOP_PRESS_CONFIG="$ROOT/stop-press.toml" PAPER_DATA_DIR="$ROOT/data" \
   exec "$PY" -m uvicorn paper.app:app --port "$PORT") &
 PID=$!
