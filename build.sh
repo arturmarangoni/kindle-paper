@@ -13,7 +13,7 @@ mkdir -p "$OUT" "$ROOT/data"
 echo "Open-Meteo: $(curl -s -m 20 -o /tmp/om.json -w '%{http_code}' \
   'https://api.open-meteo.com/v1/forecast?latitude=41.158&longitude=-8.629&current=temperature_2m') $(head -c 200 /tmp/om.json)"
 
-(cd "$SP/server" && STOP_PRESS_CONFIG="$ROOT/stop-press.toml" PAPER_DATA_DIR="$ROOT/data" \
+(cd "$SP/server" && PYTHONPATH="$ROOT/patches" STOP_PRESS_CONFIG="$ROOT/stop-press.toml" PAPER_DATA_DIR="$ROOT/data" \
   exec "$PY" -m uvicorn paper.app:app --port "$PORT") &
 PID=$!
 trap 'kill $PID 2>/dev/null' EXIT INT TERM
