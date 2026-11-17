@@ -24,6 +24,11 @@ until curl -sf -o /dev/null "http://127.0.0.1:$PORT/kindle.png"; do
   sleep 2
 done
 
+# Aquecimento: o primeiro pedido dispara as buscas (clima, mercados, notícias). Espera elas chegarem antes de
+# imprimir, senão a capa pode sair sem o clima.
+sleep 15
+curl -sf -o /dev/null "http://127.0.0.1:$PORT/kindle.png"
+
 get() { curl -sf --max-time 900 -o "$OUT/$2" "http://127.0.0.1:$PORT/$1"; }
 get "kindle.png" kindle.png
 get "ui.png?k=auto" ui.png          # a página que o Kindle desenha ao acordar
