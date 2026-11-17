@@ -1,0 +1,59 @@
+# Stop Press — configuração para o Kindle 4 em Porto.
+# Variáveis PAPER_<NOME> (ex.: PAPER_TOKEN) sobrescrevem [paper].
+
+[paper]
+masthead = "Stop Press"
+place = "Porto"
+lat = 41.158
+lon = -8.629
+tz = "Europe/Lisbon"
+# Segredo que o Kindle envia em toda requisição (o servidor fica na internet).
+token = ""   # site estático e público: sem token
+# Endereço iCal secreto da sua agenda (Google Calendar > Configurações > a agenda > "Endereço secreto no formato iCal").
+calendar_ics_url = ""
+rotation = "front"
+rotate_minutes = 60
+
+# Notícias: quatro seções, cada uma com feeds RSS/Atom [fonte, url].
+[sections.world]
+title = "Il Mondo"
+feeds = [["ANSA", "https://www.ansa.it/sito/notizie/mondo/mondo_rss.xml"],
+         ["Il Post", "https://www.ilpost.it/mondo/feed/"],
+         ["Corriere", "https://xml2.corriereobjects.it/rss/esteri.xml"]]
+
+[sections.home]
+title = "Italia"
+feeds = [["ANSA", "https://www.ansa.it/sito/notizie/cronaca/cronaca_rss.xml"],
+         ["Il Post", "https://www.ilpost.it/italia/feed/"],
+         ["Corriere", "https://xml2.corriereobjects.it/rss/cronache.xml"]]
+
+[sections.business]
+title = "Economia"
+feeds = [["ANSA", "https://www.ansa.it/sito/notizie/economia/economia_rss.xml"],
+         ["Il Post", "https://www.ilpost.it/economia/feed/"],
+         ["Corriere", "https://xml2.corriereobjects.it/rss/economia.xml"]]
+
+[sections.tech]
+title = "Intelligenza Artificiale"
+feeds = [["AI4Business", "https://www.ai4business.it/feed/"],
+         ["MIT Tech Review", "https://www.technologyreview.com/topic/artificial-intelligence/feed"],
+         ["The Verge", "https://www.theverge.com/rss/ai-artificial-intelligence/index.xml"],
+         ["Ars Technica", "https://arstechnica.com/ai/feed/"],
+         ["TechCrunch", "https://techcrunch.com/category/artificial-intelligence/feed/"]]
+
+# Mercados: símbolos do Yahoo Finance [símbolo, nome, tipo]; tipo: index, fx, crypto, commodity, stock.
+# Depois que o servidor estiver no ar, edite a lista pelo celular em /watchlist?t=<token>.
+[markets]
+lead = "^BVSP"
+front = ["^BVSP", "BRL=X", "EURBRL=X", "^GSPC", "BTC-USD", "GC=F", "BZ=F"]
+instruments = [
+  ["^BVSP", "Ibovespa", "index"], ["^GSPC", "S&P 500", "index"], ["^IXIC", "Nasdaq", "index"],
+  ["BRL=X", "USD/BRL", "fx"], ["EURBRL=X", "EUR/BRL", "fx"], ["EURUSD=X", "EUR/USD", "fx"],
+  ["BTC-USD", "Bitcoin", "crypto"], ["GC=F", "Gold", "commodity"], ["BZ=F", "Brent crude", "commodity"],
+  ["PETR4.SA", "Petrobras", "stock"], ["VALE3.SA", "Vale", "stock"], ["ITUB4.SA", "Itaú", "stock"],
+]
+
+[ai]
+base_url = ""
+api_key = ""
+model = ""
