@@ -11,6 +11,8 @@
    - PAPER_TEXT_BUMP: quantos pixels a mais nas letras pequenas da capa e das seções (até 16 px), com o espaço
      entre linhas crescendo na mesma proporção. Títulos grandes ficam como estão. A página de mercados, uma
      tabela de colunas fixas, fica no tamanho original.
+
+3. Rodapé das páginas folheáveis com a hora da impressão ("PRINTED 18:56").
 """
 import importlib.abc
 import importlib.machinery
@@ -130,7 +132,21 @@ def _patch_pages(pages):
     pages.PAGES["markets"] = markets
 
 
-_PATCHES = {"paper.draw": _patch_draw, "paper.ui": _patch_ui, "paper.pages": _patch_pages}
+def _patch_offline(offline):
+    """Rodapé da cópia que o Kindle folheia: a hora da impressão, e o que o Home faz no modo estático."""
+    from paper.draw import H, W, INK, font
+
+    def _footer(p, stamp):
+        p.d.rectangle([0, H - 30, W, H], fill=255)
+        p.rule(H - 28, w=1)
+        p.text((W / 2, H - 20), f"PRINTED {stamp}  ·  UP/DOWN NEXT STORY  ·  HOME FRONT PAGE",
+               font("sans", 11, 700), INK, anchor="ma")
+
+    offline._footer = _footer
+
+
+_PATCHES = {"paper.draw": _patch_draw, "paper.ui": _patch_ui, "paper.pages": _patch_pages,
+            "paper.offline": _patch_offline}
 
 
 class _Finder(importlib.abc.MetaPathFinder):

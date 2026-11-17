@@ -2,7 +2,9 @@ name: Imprimir o jornal
 
 on:
   schedule:
-    - cron: "40 * * * *"   # de hora em hora (UTC), pronto antes do Kindle acordar na hora cheia
+    # Duas vezes por hora (UTC): o agendamento do GitHub atrasa e às vezes pula execuções, e assim uma pulada não
+    # deixa o jornal velho. Fora dos minutos cheios, que são os mais congestionados.
+    - cron: "17,47 * * * *"
   workflow_dispatch:
 
 permissions:
