@@ -36,9 +36,43 @@ get "offline.tar" offline.tar       # o jornal inteiro, que os botões do Kindle
 get "edition.mobi" edition.mobi || echo "edição .mobi não gerada (Calibre ausente?)"
 date -u +%Y-%m-%dT%H:%MZ > "$OUT/printed.txt"
 touch "$OUT/.nojekyll"
-cat > "$OUT/index.html" <<'EOF'
-<!doctype html><meta charset="utf-8"><title>Stop Press</title>
-<body style="margin:0;background:#ddd;display:grid;place-items:center;min-height:100vh">
-<img src="kindle.png" alt="Capa do jornal" style="max-width:100%;box-shadow:0 2px 12px #0003">
+# As mesmas páginas que o Kindle folheia, soltas, para ler no navegador.
+rm -rf "$OUT/pages" && mkdir -p "$OUT/pages"
+tar -xf "$OUT/offline.tar" -C "$OUT/pages"
+PAGES=$(cat "$OUT/pages/pages.txt")
+CHAPTERS=$(tr '\n' ',' < "$OUT/pages/chapters.txt" | sed 's/,$//')
+cat > "$OUT/index.html" <<EOF
+<!doctype html><html lang="pt"><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Stop Press</title>
+<style>
+  body{margin:0;background:#d9d6cf;font:15px/1.4 system-ui,sans-serif;color:#222;display:flex;flex-direction:column;align-items:center;min-height:100vh}
+  #page{width:min(600px,100vw);aspect-ratio:3/4;background:#fff;box-shadow:0 2px 14px #0003;margin:16px 0 8px;cursor:pointer;display:block}
+  nav{display:flex;gap:8px;flex-wrap:wrap;justify-content:center;padding:0 16px 16px}
+  button{font:inherit;padding:8px 14px;border:1px solid #888;border-radius:6px;background:#f6f4ef;cursor:pointer}
+  #n{align-self:center;min-width:6em;text-align:center}
+  p{margin:0 16px 20px;max-width:600px;text-align:center;color:#555;font-size:13px}
+</style>
+<img id="page" alt="Página do jornal">
+<nav>
+  <button id="ps" title="Matéria anterior (↑)">⇤ matéria</button>
+  <button id="pp" title="Página anterior (←)">← página</button>
+  <span id="n"></span>
+  <button id="np" title="Próxima página (→ ou clique na página)">página →</button>
+  <button id="ns" title="Próxima matéria (↓)">matéria ⇥</button>
+  <button id="home" title="Capa">capa</button>
+</nav>
+<p>Impresso em $(date -u '+%d/%m/%Y %H:%M') UTC · as mesmas páginas que o Kindle folheia. Setas do teclado também funcionam.</p>
+<script>
+const N=$PAGES, CH=[$CHAPTERS]; let p=+(location.hash.slice(1))||1;
+const img=document.getElementById('page'), n=document.getElementById('n');
+function show(){p=Math.min(Math.max(p,1),N);img.src='pages/p'+String(p).padStart(3,'0')+'.png';n.textContent=p+' / '+N;history.replaceState(null,'','#'+p)}
+const nextStory=()=>{const c=CH.find(c=>c>p);if(c)p=c},prevStory=()=>{let t=1;for(const c of CH)if(c<p)t=c;p=t};
+const act={np:()=>p++,pp:()=>p--,ns:nextStory,ps:prevStory,home:()=>p=1};
+for(const id in act)document.getElementById(id).onclick=()=>{act[id]();show()};
+img.onclick=()=>{p++;show()};
+addEventListener('keydown',e=>{const k={ArrowRight:'np',ArrowLeft:'pp',ArrowDown:'ns',ArrowUp:'ps',Home:'home'}[e.key];if(k){e.preventDefault();act[k]();show()}});
+show();
+</script>
 EOF
 ls -la "$OUT"
