@@ -26,8 +26,10 @@ feeds = [["g1", "https://g1.globo.com/rss/g1/mundo/"],
 # as listas do site (api/list/local/<cidade>) em feed. Vai para a capa (as dos últimos 3 dias, primeiro).
 [sections.regiao]
 title = "Porto e Matosinhos"
-# JN: a lista de notícias do site (não tem RSS), filtrada pelas cidades da região em patches/sitecustomize.py.
-feeds = [["JN", "https://www.jn.pt/feed/news/sitemap.xml"],
+# O Público publica pouco por cidade; os feeds nacionais com "#regiao" ficam só com as notícias da região
+# (filtro em patches/sitecustomize.py).
+feeds = [["Notícias ao Minuto", "https://www.noticiasaominuto.com/rss/pais#regiao"],
+         ["RTP", "https://www.rtp.pt/noticias/rss/pais#regiao"],
          ["Público Matosinhos", "https://www.publico.pt/api/list/local/matosinhos"],
          ["Público Porto", "https://www.publico.pt/api/list/local/porto"],
          ["Público Maia", "https://www.publico.pt/api/list/local/maia"],

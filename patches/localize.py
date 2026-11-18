@@ -222,6 +222,8 @@ def _lead_image(item):
     if photos.available(item.get("image")):
         return item.get("image")
     a = archive.get(item.get("link"))
+    if photos.available((a or {}).get("image")):  # a foto de capa da própria página (og:image)
+        return a["image"]
     for para in _paragraphs((a or {}).get("text") or ""):
         if para.startswith(archive.IMG):
             url = para[len(archive.IMG):-2]
