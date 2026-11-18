@@ -42,10 +42,24 @@ jobs:
           cache-dependency-path: stop-press-src/server/requirements.txt
 
       - name: Instalar dependências (Calibre para a edição diária)
+        # O apt-get do runner já travou mais de 20 minutos num espelho lento. Cada chamada tem limite de tempo e
+        # novas tentativas; o Calibre (só para a edição .mobi) é opcional: sem ele o jornal sai do mesmo jeito.
+        timeout-minutes: 12
+        env:
+          DEBIAN_FRONTEND: noninteractive
         run: |
-          sudo apt-get update -qq
-          sudo apt-get install -y -qq --no-install-recommends calibre locales > /dev/null
+          aptr() {
+            for i in 1 2 3; do
+              sudo -E timeout 180 apt-get -o Acquire::Retries=3 -o Acquire::http::Timeout=30 "$@" && return 0
+              echo "apt-get $1 falhou (tentativa $i)"; sudo dpkg --configure -a || true; sleep 10
+            done
+            return 1
+          }
+          aptr update -qq
+          aptr install -y -qq --no-install-recommends locales > /dev/null
           sudo locale-gen pt_BR.UTF-8 > /dev/null   # datas em português
+          aptr install -y -qq --no-install-recommends calibre > /dev/null ||
+            echo "::warning::Calibre não instalou; esta impressão sai sem a edição .mobi"
           pip install -q -r stop-press-src/server/requirements.txt
 
       - name: Recuperar o histórico do jornal

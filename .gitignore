@@ -2,3 +2,6 @@ public/
 data/
 stop-press-src/
 work/
+trigger/.wrangler/
+trigger/node_modules/
+trigger/.dev.vars

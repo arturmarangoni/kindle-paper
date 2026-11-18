@@ -1,0 +1,9 @@
+name = "kindle-paper-cron"
+main = "worker.js"
+compatibility_date = "2026-11-01"
+# Sem endereço público: o Worker só roda pelo agendamento abaixo.
+workers_dev = false
+
+[triggers]
+# Horários em UTC: aos 15 e aos 45 de cada hora. A impressão leva uns 5 a 10 minutos.
+crons = ["15,45 * * * *"]
