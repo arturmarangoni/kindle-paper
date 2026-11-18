@@ -197,10 +197,10 @@ def _mix(a, b):
 
 
 def _local_news():
-    """A capa e o Seu dia: as notícias da região (dos últimos 3 dias) primeiro, depois as de Portugal."""
+    """A capa e o Seu dia: as notícias da região (das últimas 24 horas) primeiro, depois as de Portugal."""
     n = sources.news() or {}
     agora = datetime.now(timezone.utc)
-    regiao = [i for i in n.get("regiao") or [] if i.get("when") and (agora - i["when"]).total_seconds() < 72 * 3600]
+    regiao = [i for i in n.get("regiao") or [] if i.get("when") and (agora - i["when"]).total_seconds() < 24 * 3600]
     out, seen = [], set()
     for item in regiao + (n.get("home") or []):
         if item["link"] not in seen:

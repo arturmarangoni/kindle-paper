@@ -15,7 +15,8 @@
 3. Rodapé das páginas folheáveis com a hora da impressão ("IMPRESSO ÀS 18:56").
 
 5. Notícias da região: o Público não tem RSS por cidade, então as listas do site (publico.pt/api/list/local/
-   <cidade>, em JSON) são convertidas em RSS aqui, na hora em que o Stop Press as pede.
+   <cidade>, em JSON) são convertidas em RSS aqui, na hora em que o Stop Press as pede. O mesmo com o JN, que só
+   tem uma lista de notícias para o Google (jn.pt/feed/news/sitemap.xml), filtrada pelas cidades da região.
 
 4. Datas em português do Brasil (locale pt_BR; o workflow instala o locale no runner). Os demais textos são
    traduzidos por patches/localize.py.
@@ -24,6 +25,7 @@ import importlib.abc
 import importlib.machinery
 import locale
 import os
+import re
 import sys
 import time
 from pathlib import Path
@@ -59,6 +61,8 @@ def _get(url, *args, **kw):
             r = _orig_get(url, *args, **kw)
             if "publico.pt/api/list/" in str(url) and r.status_code == 200:
                 return _publico_rss(url, r)
+            if "jn.pt/feed/news/sitemap.xml" in str(url) and r.status_code == 200:
+                return _jn_rss(url, r)
             if is_weather:
                 if r.status_code == 200:
                     _LAST.write_bytes(r.content)
@@ -102,6 +106,42 @@ def _publico_rss(url, r):
                      f"<pubDate>{when}</pubDate>{media}</item>")
     rss = ('<?xml version="1.0" encoding="utf-8"?><rss version="2.0" xmlns:media="http://search.yahoo.com/mrss/">'
            f"<channel><title>Público</title><link>https://www.publico.pt</link>{''.join(items)}</channel></rss>")
+    return httpx.Response(200, content=rss.encode("utf-8"), request=httpx.Request("GET", str(url)),
+                          headers={"content-type": "application/rss+xml"})
+
+
+# Cidades da região (no título ou no endereço da notícia) que entram na seção Porto e Matosinhos vindas do JN.
+_REGIAO = re.compile(r"\b(porto|matosinhos|senhora da hora|le[çc]a|maia|gaia|gondomar|valongo|vila do conde|"
+                     r"p[óo]voa de varzim|espinho|trofa|stcp|metro do porto)\b", re.I)
+
+
+def _jn_rss(url, r):
+    """O JN não tem RSS: a lista de notícias do site (um sitemap do Google Notícias) vira RSS, só com as notícias
+    da região. Desporto, opinião, famosos e anúncios do próprio JN ficam de fora."""
+    import html
+    import xml.etree.ElementTree as ET
+    from datetime import datetime
+    from email.utils import format_datetime
+
+    ns = {"s": "http://www.sitemaps.org/schemas/sitemap/0.9", "n": "http://www.google.com/schemas/sitemap-news/0.9"}
+    items = []
+    for u in ET.fromstring(r.content).findall("s:url", ns):
+        link = (u.findtext("s:loc", "", ns) or "").strip()
+        title = (u.findtext("n:news/n:title", "", ns) or "").strip()
+        if not link or not title or re.search(r"jn\.pt/(desporto|opiniao|iniciativas|pessoas)/", link):
+            continue
+        if not _REGIAO.search(title) and not _REGIAO.search(link.replace("-", " ")):
+            continue
+        when = ""
+        try:
+            when = format_datetime(datetime.fromisoformat(u.findtext("n:news/n:publication_date", "", ns)))
+        except Exception:
+            pass
+        e = lambda v: html.escape(v, quote=True)
+        items.append(f"<item><title>{e(title)}</title><link>{e(link)}</link><guid>{e(link)}</guid>"
+                     f"<pubDate>{when}</pubDate></item>")
+    rss = ('<?xml version="1.0" encoding="utf-8"?><rss version="2.0"><channel><title>JN</title>'
+           f"<link>https://www.jn.pt</link>{''.join(items)}</channel></rss>")
     return httpx.Response(200, content=rss.encode("utf-8"), request=httpx.Request("GET", str(url)),
                           headers={"content-type": "application/rss+xml"})
 
