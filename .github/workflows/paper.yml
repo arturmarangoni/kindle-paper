@@ -19,10 +19,10 @@ concurrency:
 jobs:
   print:
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 45
     environment:
       name: github-pages
-      url: ${{ steps.deploy.outputs.page_url }}
+      url: ${{ steps.deploy.outputs.page_url || steps.deploy2.outputs.page_url || steps.deploy3.outputs.page_url }}
     steps:
       - uses: actions/checkout@v4
 
@@ -44,20 +44,24 @@ jobs:
       - name: Instalar dependências (Calibre para a edição diária)
         # O apt-get do runner já travou mais de 20 minutos num espelho lento. Cada chamada tem limite de tempo e
         # novas tentativas; o Calibre (só para a edição .mobi) é opcional: sem ele o jornal sai do mesmo jeito.
-        timeout-minutes: 12
-        env:
-          DEBIAN_FRONTEND: noninteractive
+        # O pior caso (todas as tentativas no limite) cabe nos 18 minutos.
+        timeout-minutes: 18
         run: |
           aptr() {
-            for i in 1 2 3; do
-              sudo -E timeout 180 apt-get -o Acquire::Retries=3 -o Acquire::http::Timeout=30 "$@" && return 0
-              echo "apt-get $1 falhou (tentativa $i)"; sudo dpkg --configure -a || true; sleep 10
+            for i in 1 2; do
+              sudo env DEBIAN_FRONTEND=noninteractive NEEDRESTART_MODE=a timeout -k 10 180 \
+                apt-get -o Acquire::Retries=3 -o Acquire::http::Timeout=30 -o DPkg::Lock::Timeout=30 "$@" && return 0
+              echo "apt-get $1 falhou (tentativa $i)"
+              sudo timeout -k 10 60 dpkg --configure -a || true
+              sleep 5
             done
             return 1
           }
-          aptr update -qq
-          aptr install -y -qq --no-install-recommends locales > /dev/null
-          sudo locale-gen pt_BR.UTF-8 > /dev/null   # datas em português
+          aptr update -qq || echo "::warning::apt-get update falhou; seguindo com as listas do runner"
+          command -v locale-gen > /dev/null || aptr install -y -qq --no-install-recommends locales > /dev/null ||
+            echo "::warning::locales não instalou"
+          sudo locale-gen pt_BR.UTF-8 > /dev/null ||   # datas em português
+            echo "::warning::sem o locale pt_BR; as datas desta impressão saem em inglês"
           aptr install -y -qq --no-install-recommends calibre > /dev/null ||
             echo "::warning::Calibre não instalou; esta impressão sai sem a edição .mobi"
           pip install -q -r stop-press-src/server/requirements.txt
@@ -76,7 +80,24 @@ jobs:
       - uses: actions/upload-pages-artifact@v3
         with:
           path: public
+
+      # Publicar. O GitHub às vezes ainda não lista o pacote recém-enviado ("No artifacts named github-pages", veja
+      # https://github.com/actions/deploy-pages/issues/451), o que falhava 1 em cada 9 impressões. Por isso a espera e
+      # até três tentativas; a impressão só falha (e o GitHub só manda e-mail) se a última falhar.
+      - run: sleep 10
       - id: deploy
+        uses: actions/deploy-pages@v4
+        continue-on-error: true
+      - if: steps.deploy.outcome == 'failure'
+        run: sleep 30
+      - id: deploy2
+        if: steps.deploy.outcome == 'failure'
+        uses: actions/deploy-pages@v4
+        continue-on-error: true
+      - if: steps.deploy2.outcome == 'failure'
+        run: sleep 90
+      - id: deploy3
+        if: steps.deploy2.outcome == 'failure'
         uses: actions/deploy-pages@v4
 
       # O GitHub desliga agendamentos de repositórios sem commits há 60 dias. Um commit por mês evita isso.

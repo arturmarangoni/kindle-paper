@@ -22,27 +22,42 @@ WORK="$ROOT/work"
 rm -rf "$WORK" && cp -R "$SP/server" "$WORK"
 "$PY" "$ROOT/patches/localize.py" "$WORK"
 
-(cd "$WORK" && PYTHONPATH="$ROOT/patches" STOP_PRESS_CONFIG="$ROOT/stop-press.toml" PAPER_DATA_DIR="$ROOT/data" \
-  exec "$PY" -m uvicorn paper.app:app --port "$PORT") &
-PID=$!
-trap 'kill $PID 2>/dev/null' EXIT INT TERM
+PID=
+trap '[ -z "$PID" ] || kill $PID 2>/dev/null' EXIT INT TERM
 
-i=0
-until curl -sf -o /dev/null "http://127.0.0.1:$PORT/kindle.png"; do
-  i=$((i + 1)); [ $i -lt 90 ] || { echo "o servidor não subiu"; exit 1; }
-  sleep 2
+get() { curl -sf --max-time "${3:-600}" -o "$OUT/$2.part" "http://127.0.0.1:$PORT/$1" && mv "$OUT/$2.part" "$OUT/$2"; }
+
+# Uma impressão completa. Devolve erro se o servidor morrer no meio ou não responder.
+print_once() {
+  (cd "$WORK" && PYTHONPATH="$ROOT/patches" STOP_PRESS_CONFIG="$ROOT/stop-press.toml" PAPER_DATA_DIR="$ROOT/data" \
+    exec "$PY" -m uvicorn paper.app:app --port "$PORT") &
+  PID=$!
+  i=0
+  until curl -sf --max-time 60 -o /dev/null "http://127.0.0.1:$PORT/kindle.png"; do
+    kill -0 $PID 2>/dev/null || { echo "o servidor morreu ao subir"; return 1; }
+    i=$((i + 1)); [ $i -lt 60 ] || { echo "o servidor não subiu"; return 1; }
+    sleep 2
+  done
+  # Aquecimento: o primeiro pedido dispara as buscas (clima, mercados, notícias). Espera elas chegarem antes de
+  # imprimir, senão a capa pode sair sem o clima.
+  sleep 15
+  get "kindle.png" kindle.png || return 1
+  get "kindle.png" kindle.png || return 1
+  get "ui.png?k=auto" ui.png || return 1        # a página que o Kindle desenha ao acordar
+  get "offline.tar" offline.tar || return 1     # o jornal inteiro, que os botões do Kindle folheiam
+  get "edition.mobi" edition.mobi 300 || echo "edição .mobi não gerada (Calibre ausente?)"
+}
+
+# O servidor às vezes morre no meio ("free(): invalid size", nas fotos baixadas em paralelo): tenta até 3 vezes.
+n=1
+until print_once; do
+  kill -9 $PID 2>/dev/null || true
+  wait $PID 2>/dev/null || true
+  [ $n -lt 3 ] || { echo "a impressão falhou 3 vezes"; exit 1; }
+  n=$((n + 1))
+  echo "a impressão falhou; tentativa $n de 3"
+  sleep 5
 done
-
-# Aquecimento: o primeiro pedido dispara as buscas (clima, mercados, notícias). Espera elas chegarem antes de
-# imprimir, senão a capa pode sair sem o clima.
-sleep 15
-curl -sf -o /dev/null "http://127.0.0.1:$PORT/kindle.png"
-
-get() { curl -sf --max-time 900 -o "$OUT/$2" "http://127.0.0.1:$PORT/$1"; }
-get "kindle.png" kindle.png
-get "ui.png?k=auto" ui.png          # a página que o Kindle desenha ao acordar
-get "offline.tar" offline.tar       # o jornal inteiro, que os botões do Kindle folheiam
-get "edition.mobi" edition.mobi || echo "edição .mobi não gerada (Calibre ausente?)"
 date -u +%Y-%m-%dT%H:%MZ > "$OUT/printed.txt"
 touch "$OUT/.nojekyll"
 # As mesmas páginas que o Kindle folheia, soltas, para ler no navegador.
